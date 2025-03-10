@@ -1,0 +1,39 @@
+replicaCount: 1
+
+image:
+  repository: docker.io/junzhutx/maybe-homelab
+  tag: "latest" # Or pin to "v0.2.0-rc2"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: false
+  hostname: maybe.lan
+  ingressClassName: nginx # Adjust if using a different ingress controller
+
+maybe:
+  env:
+    RAILS_ENV: production
+    DATABASE_URL: "postgresql://maybe:maybe@maybe-postgres:5432/maybe?sslmode=disable"
+    REDIS_URL: "redis://maybe-redis:6379/0"
+    PLAID_CLIENT_ID: "" # Add your Plaid creds
+    PLAID_SECRET: ""
+    PLAID_ENV: "sandbox" # Or "production"
+    SELF_HOSTED: "true"
+    RAILS_FORCE_SSL: "false"
+    RAILS_ASSUME_SSL: "false"
+    GOOD_JOB_EXECUTION_MODE: "async"
+
+postgres:
+  enabled: true
+  image: postgres:16
+  username: maybe
+  password: maybe
+  database: maybe
+
+redis:
+  enabled: true
+  image: redis:7

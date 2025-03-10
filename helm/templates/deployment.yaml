@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-app
+  labels:
+    {{- include "maybe.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "maybe.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "maybe.labels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: maybe
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: RAILS_ENV
+          value: {{ .Values.maybe.env.RAILS_ENV }}
+        - name: DATABASE_URL
+          value: {{ .Values.maybe.env.DATABASE_URL }}
+        - name: REDIS_URL
+          value: {{ .Values.maybe.env.REDIS_URL }}
+        - name: PLAID_CLIENT_ID
+          value: {{ .Values.maybe.env.PLAID_CLIENT_ID }}
+        - name: PLAID_SECRET
+          value: {{ .Values.maybe.env.PLAID_SECRET }}
+        - name: PLAID_ENV
+          value: {{ .Values.maybe.env.PLAID_ENV }}
+        - name: SELF_HOSTED
+          value: {{ .Values.maybe.env.SELF_HOSTED }}
+        - name: RAILS_FORCE_SSL
+          value: {{ .Values.maybe.env.RAILS_FORCE_SSL }}
+        - name: RAILS_ASSUME_SSL
+          value: {{ .Values.maybe.env.RAILS_ASSUME_SSL }}
+        - name: GOOD_JOB_EXECUTION_MODE
+          value: {{ .Values.maybe.env.GOOD_JOB_EXECUTION_MODE }}
+        ports:
+        - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
