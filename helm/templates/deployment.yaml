@@ -22,9 +22,9 @@ spec:
         - name: RAILS_ENV
           value: {{ .Values.maybe.env.RAILS_ENV }}
         - name: DATABASE_URL
-          value: {{ .Values.maybe.env.DATABASE_URL }}
+          value: "postgresql://maybe:maybe@{{ .Release.Name }}-postgres:5432/maybe?sslmode=disable"
         - name: REDIS_URL
-          value: {{ .Values.maybe.env.REDIS_URL }}
+          value: "redis://{{ .Release.Name }}-redis:6379/0"
         - name: PLAID_CLIENT_ID
           value: {{ .Values.maybe.env.PLAID_CLIENT_ID }}
         - name: PLAID_SECRET
@@ -32,13 +32,18 @@ spec:
         - name: PLAID_ENV
           value: {{ .Values.maybe.env.PLAID_ENV }}
         - name: SELF_HOSTED
-          value: {{ .Values.maybe.env.SELF_HOSTED }}
+          value: "{{ .Values.maybe.env.SELF_HOSTED }}"
         - name: RAILS_FORCE_SSL
-          value: {{ .Values.maybe.env.RAILS_FORCE_SSL }}
+          value: "{{ .Values.maybe.env.RAILS_FORCE_SSL }}"
         - name: RAILS_ASSUME_SSL
-          value: {{ .Values.maybe.env.RAILS_ASSUME_SSL }}
+          value: "{{ .Values.maybe.env.RAILS_ASSUME_SSL }}"
         - name: GOOD_JOB_EXECUTION_MODE
           value: {{ .Values.maybe.env.GOOD_JOB_EXECUTION_MODE }}
+        - name: SECRET_KEY_BASE
+          valueFrom:
+           secretKeyRef:
+            name: secret-key-base
+            key: value
         ports:
         - containerPort: 3000
         readinessProbe:

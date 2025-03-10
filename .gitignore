@@ -66,3 +66,6 @@ coverage
 
 # Ignore node related files
 node_modules
+
+#ignore secret file
+/helm/templates/secrets.yaml
