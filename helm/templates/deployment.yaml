@@ -26,9 +26,15 @@ spec:
         - name: REDIS_URL
           value: "redis://{{ .Release.Name }}-redis:6379/0"
         - name: PLAID_CLIENT_ID
-          value: {{ .Values.maybe.env.PLAID_CLIENT_ID }}
+          valueFrom:
+           secretKeyRef:
+            name: maybe-secrets
+            key: plaid-client-id
         - name: PLAID_SECRET
-          value: {{ .Values.maybe.env.PLAID_SECRET }}
+          valueFrom:
+           secretKeyRef:
+            name: maybe-secrets
+            key: plaid-client-secret
         - name: PLAID_ENV
           value: {{ .Values.maybe.env.PLAID_ENV }}
         - name: SELF_HOSTED
@@ -42,8 +48,8 @@ spec:
         - name: SECRET_KEY_BASE
           valueFrom:
            secretKeyRef:
-            name: secret-key-base
-            key: value
+            name: maybe-secrets
+            key: secret-key-base
         ports:
         - containerPort: 3000
         readinessProbe:
