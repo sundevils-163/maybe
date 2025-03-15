@@ -92,6 +92,24 @@ SECRET_KEY_BASE="replacemewiththegeneratedstringfromthepriorstep"
 POSTGRES_PASSWORD="replacemewithyourdesireddatabasepassword"
 ```
 
+#### Helm deployment in K8s cluster helm manifest
+
+Update the helm manifaest under the helm directory based on your environment
+
+Add your base64 encoded Plaid credentials and secret key base to a secrets.yaml file under helm/templates folder as below:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: maybe-secrets
+type: Opaque
+data:
+  secret-key-base: <base64 encoded key base>
+  plaid-client-id: <base64 encoded plaid client id>
+  plaid-client-secret: <base64 encoded plaid client secret>
+```
+
 ### Step 3: Test your app
 
 You are now ready to run the app. Start with the following command to make sure everything is working:
