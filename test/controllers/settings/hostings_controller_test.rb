@@ -1,8 +1,22 @@
 require "test_helper"
+require "ostruct"
 
 class Settings::HostingsControllerTest < ActionDispatch::IntegrationTest
+  include ProviderTestHelper
+
   setup do
     sign_in users(:family_admin)
+
+    @provider = mock
+    Providers.stubs(:synth).returns(@provider)
+    @usage_response = provider_success_response(
+      OpenStruct.new(
+        used: 10,
+        limit: 100,
+        utilization: 10,
+        plan: "free",
+      )
+    )
   end
 
   test "cannot edit when self hosting is disabled" do
@@ -11,11 +25,13 @@ class Settings::HostingsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_raises(RuntimeError, "Settings not available on non-self-hosted instance") do
-      patch settings_hosting_url, params: { setting: { render_deploy_hook: "https://example.com" } }
+      patch settings_hosting_url, params: { setting: { require_invite_for_signup: true } }
     end
   end
 
   test "should get edit when self hosting is enabled" do
+    @provider.expects(:usage).returns(@usage_response)
+
     with_self_hosting do
       get settings_hosting_url
       assert_response :success
@@ -24,25 +40,11 @@ class Settings::HostingsControllerTest < ActionDispatch::IntegrationTest
 
   test "can update settings when self hosting is enabled" do
     with_self_hosting do
-      NEW_RENDER_DEPLOY_HOOK = "https://api.render.com/deploy/srv-abc123"
-      assert_nil Setting.render_deploy_hook
+      assert_nil Setting.synth_api_key
 
-      patch settings_hosting_url, params: { setting: { render_deploy_hook: NEW_RENDER_DEPLOY_HOOK } }
+      patch settings_hosting_url, params: { setting: { synth_api_key: "1234567890" } }
 
-      assert_equal NEW_RENDER_DEPLOY_HOOK, Setting.render_deploy_hook
-    end
-  end
-
-  test "can choose auto upgrades mode with a deploy hook" do
-    with_self_hosting do
-      NEW_RENDER_DEPLOY_HOOK = "https://api.render.com/deploy/srv-abc123"
-      assert_nil Setting.render_deploy_hook
-
-      patch settings_hosting_url, params: { setting: { render_deploy_hook: NEW_RENDER_DEPLOY_HOOK, upgrades_setting: "release" } }
-
-      assert_equal "auto", Setting.upgrades_mode
-      assert_equal "release", Setting.upgrades_target
-      assert_equal NEW_RENDER_DEPLOY_HOOK, Setting.render_deploy_hook
+      assert_equal "1234567890", Setting.synth_api_key
     end
   end
 

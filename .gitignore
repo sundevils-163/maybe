@@ -11,7 +11,6 @@
 # Ignore all environment files (except templates).
 /.env*
 !/.env*.erb
-!.env.test
 !.env*.example
 
 # Ignore all logfiles and tempfiles.
@@ -66,6 +65,8 @@ coverage
 
 # Ignore node related files
 node_modules
+
+compose.yml
 
 #ignore secret file
 /helm/templates/secrets.yaml
