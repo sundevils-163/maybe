@@ -2,4 +2,4 @@ apiVersion: v2
 name: maybe
 description: A Helm chart for self-hosting Maybe financial app
 version: 0.1.1
-appVersion: "0.2.1"
+appVersion: "0.2.2"
