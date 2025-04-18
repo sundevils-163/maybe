@@ -3,7 +3,7 @@ require "test_helper"
 class CategoriesControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_in users(:family_admin)
-    @transaction = account_transactions :one
+    @transaction = transactions :one
   end
 
   test "index" do
@@ -84,7 +84,7 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "bootstrap" do
-    assert_difference "Category.count", 10 do
+    assert_difference "Category.count", 12 do
       post bootstrap_categories_url
     end
 

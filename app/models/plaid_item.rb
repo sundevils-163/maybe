@@ -37,7 +37,7 @@ class PlaidItem < ApplicationRecord
     end
   end
 
-  def sync_data(start_date: nil)
+  def sync_data(sync, start_date: nil)
     update!(last_synced_at: Time.current)
 
     begin
@@ -79,13 +79,44 @@ class PlaidItem < ApplicationRecord
     end
   end
 
-  def post_sync
+  def post_sync(sync)
+    auto_match_categories!
     family.broadcast_refresh
   end
 
   def destroy_later
     update!(scheduled_for_deletion: true)
     DestroyJob.perform_later(self)
+  end
+
+  def auto_match_categories!
+    if family.categories.none?
+      family.categories.bootstrap!
+    end
+
+    alias_matcher = build_category_alias_matcher(family.categories)
+
+    accounts.each do |account|
+      matchable_transactions = account.transactions
+                                      .where(category_id: nil)
+                                      .where.not(plaid_category: nil)
+                                      .enrichable(:category_id)
+
+      matchable_transactions.each do |transaction|
+        category = alias_matcher.match(transaction.plaid_category_detailed)
+
+        if category.present?
+          PlaidItem.transaction do
+            transaction.log_enrichment!(
+              attribute_name: "category_id",
+              attribute_value: category.id,
+              source: "plaid"
+            )
+            transaction.set_category!(category)
+          end
+        end
+      end
+    end
   end
 
   private

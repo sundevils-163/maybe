@@ -1,5 +1,5 @@
 class Account < ApplicationRecord
-  include Syncable, Monetizable, Chartable, Enrichable, Linkable, Convertible
+  include Syncable, Monetizable, Chartable, Linkable, Convertible, Enrichable
 
   validates :name, :balance, :currency, presence: true
 
@@ -7,11 +7,11 @@ class Account < ApplicationRecord
   belongs_to :import, optional: true
 
   has_many :import_mappings, as: :mappable, dependent: :destroy, class_name: "Import::Mapping"
-  has_many :entries, dependent: :destroy, class_name: "Account::Entry"
-  has_many :transactions, through: :entries, source: :entryable, source_type: "Account::Transaction"
-  has_many :valuations, through: :entries, source: :entryable, source_type: "Account::Valuation"
-  has_many :trades, through: :entries, source: :entryable, source_type: "Account::Trade"
-  has_many :holdings, dependent: :destroy, class_name: "Account::Holding"
+  has_many :entries, dependent: :destroy
+  has_many :transactions, through: :entries, source: :entryable, source_type: "Transaction"
+  has_many :valuations, through: :entries, source: :entryable, source_type: "Valuation"
+  has_many :trades, through: :entries, source: :entryable, source_type: "Trade"
+  has_many :holdings, dependent: :destroy
   has_many :balances, dependent: :destroy
 
   monetize :balance, :cash_balance
@@ -34,6 +34,7 @@ class Account < ApplicationRecord
     def create_and_sync(attributes)
       attributes[:accountable_attributes] ||= {} # Ensure accountable is created, even if empty
       account = new(attributes.merge(cash_balance: attributes[:balance]))
+      initial_balance = attributes.dig(:accountable_attributes, :initial_balance)&.to_d || 0
 
       transaction do
         # Create 2 valuations for new accounts to establish a value history for users to see
@@ -42,14 +43,14 @@ class Account < ApplicationRecord
           date: Date.current,
           amount: account.balance,
           currency: account.currency,
-          entryable: Account::Valuation.new
+          entryable: Valuation.new
         )
         account.entries.build(
           name: "Initial Balance",
           date: 1.day.ago.to_date,
-          amount: 0,
+          amount: initial_balance,
           currency: account.currency,
-          entryable: Account::Valuation.new
+          entryable: Valuation.new
         )
 
         account.save!
@@ -70,29 +71,21 @@ class Account < ApplicationRecord
     DestroyJob.perform_later(self)
   end
 
-  def sync_data(start_date: nil)
+  def sync_data(sync, start_date: nil)
     update!(last_synced_at: Time.current)
-
-    Rails.logger.info("Auto-matching transfers")
-    family.auto_match_transfers!
 
     Rails.logger.info("Processing balances (#{linked? ? 'reverse' : 'forward'})")
     sync_balances
+  end
 
-    if enrichable?
-      Rails.logger.info("Enriching transaction data")
-      enrich_data
+  def post_sync(sync)
+    family.remove_syncing_notice!
+
+    accountable.post_sync(sync)
+
+    unless sync.child?
+      family.auto_match_transfers!
     end
-  end
-
-  def post_sync
-    broadcast_remove_to(family, target: "syncing-notice")
-    accountable.post_sync
-  end
-
-  def original_balance
-    balance_amount = balances.chronological.first&.balance || balance
-    Money.new(balance_amount, currency)
   end
 
   def current_holdings
@@ -102,16 +95,20 @@ class Account < ApplicationRecord
   def update_with_sync!(attributes)
     should_update_balance = attributes[:balance] && attributes[:balance].to_d != balance
 
+    initial_balance = attributes.dig(:accountable_attributes, :initial_balance)
+    should_update_initial_balance = initial_balance && initial_balance.to_d != accountable.initial_balance
+
     transaction do
       update!(attributes)
       update_balance!(attributes[:balance]) if should_update_balance
+      update_inital_balance!(attributes[:accountable_attributes][:initial_balance]) if should_update_initial_balance
     end
 
     sync_later
   end
 
   def update_balance!(balance)
-    valuation = entries.account_valuations.find_by(date: Date.current)
+    valuation = entries.valuations.find_by(date: Date.current)
 
     if valuation
       valuation.update! amount: balance
@@ -121,13 +118,41 @@ class Account < ApplicationRecord
         name: "Balance update",
         amount: balance,
         currency: currency,
-        entryable: Account::Valuation.new
+        entryable: Valuation.new
+    end
+  end
+
+  def update_inital_balance!(initial_balance)
+    valuation = first_valuation
+
+    if valuation
+      valuation.update! amount: initial_balance
+    else
+      entries.create! \
+        date: Date.current,
+        name: "Initial Balance",
+        amount: initial_balance,
+        currency: currency,
+        entryable: Valuation.new
     end
   end
 
   def start_date
     first_entry_date = entries.minimum(:date) || Date.current
     first_entry_date - 1.day
+  end
+
+  def lock_saved_attributes!
+    super
+    accountable.lock_saved_attributes!
+  end
+
+  def first_valuation
+    entries.valuations.order(:date).first
+  end
+
+  def first_valuation_amount
+    first_valuation&.amount_money || balance_money
   end
 
   private

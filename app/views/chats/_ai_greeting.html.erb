@@ -1,11 +1,11 @@
-<div class="flex items-start gap-2 w-full">
+<div class="flex items-start w-full">
   <%= render "chats/ai_avatar" %>
 
   <div class="max-w-[85%] text-sm space-y-4 text-primary">
     <p>Hey <%= Current.user&.first_name || "there" %>! I'm an AI built by Maybe to help with your finances. I have access to the web and your account data.</p>
 
     <p>
-      You can use <span class="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-xs">/</span> to access commands
+      You can use <span class="bg-container border border-gray-200 px-1.5 py-0.5 rounded font-mono text-xs">/</span> to access commands
     </p>
 
     <div class="space-y-3">
@@ -13,11 +13,11 @@
 
       <% questions = [
         {
-          icon: "bar-chart-2",
+          icon: "chart-area",
           text: "Evaluate investment portfolio"
         },
         {
-          icon: "credit-card",
+          icon: "wallet-minimal",
           text: "Show spending insights"
         },
         {
@@ -31,7 +31,7 @@
           <button data-action="chat#submitSampleQuestion"
                   data-chat-question-param="<%= question[:text] %>"
                   class="w-full flex items-center gap-2 border border-tertiary rounded-full py-1.5 px-2.5 hover:bg-gray-100">
-            <%= icon(question[:icon]) %> <%= question[:text] %>
+            <%= icon(question[:icon], color: "gray") %> <%= question[:text] %>
           </button>
         <% end %>
       </div>

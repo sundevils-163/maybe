@@ -22,18 +22,40 @@ class Family < ApplicationRecord
 
   has_many :entries, through: :accounts
   has_many :transactions, through: :accounts
+  has_many :rules, dependent: :destroy
   has_many :trades, through: :accounts
   has_many :holdings, through: :accounts
 
   has_many :tags, dependent: :destroy
   has_many :categories, dependent: :destroy
-  has_many :merchants, dependent: :destroy
+  has_many :merchants, dependent: :destroy, class_name: "FamilyMerchant"
 
   has_many :budgets, dependent: :destroy
   has_many :budget_categories, through: :budgets
 
   validates :locale, inclusion: { in: I18n.available_locales.map(&:to_s) }
   validates :date_format, inclusion: { in: DATE_FORMATS.map(&:last) }
+
+  def assigned_merchants
+    merchant_ids = transactions.where.not(merchant_id: nil).pluck(:merchant_id).uniq
+    Merchant.where(id: merchant_ids)
+  end
+
+  def auto_categorize_transactions_later(transactions)
+    AutoCategorizeJob.perform_later(self, transaction_ids: transactions.pluck(:id))
+  end
+
+  def auto_categorize_transactions(transaction_ids)
+    AutoCategorizer.new(self, transaction_ids: transaction_ids).auto_categorize
+  end
+
+  def auto_detect_transaction_merchants_later(transactions)
+    AutoDetectMerchantsJob.perform_later(self, transaction_ids: transactions.pluck(:id))
+  end
+
+  def auto_detect_transaction_merchants(transaction_ids)
+    AutoMerchantDetector.new(self, transaction_ids: transaction_ids).auto_detect
+  end
 
   def balance_sheet
     @balance_sheet ||= BalanceSheet.new(self)
@@ -43,29 +65,43 @@ class Family < ApplicationRecord
     @income_statement ||= IncomeStatement.new(self)
   end
 
-  def sync_data(start_date: nil)
+  def sync_data(sync, start_date: nil)
     update!(last_synced_at: Time.current)
 
+    Rails.logger.info("Syncing accounts for family #{id}")
     accounts.manual.each do |account|
-      account.sync_later(start_date: start_date)
+      account.sync_later(start_date: start_date, parent_sync: sync)
     end
 
+    Rails.logger.info("Syncing plaid items for family #{id}")
     plaid_items.each do |plaid_item|
-      plaid_item.sync_later(start_date: start_date)
+      plaid_item.sync_later(start_date: start_date, parent_sync: sync)
+    end
+
+    Rails.logger.info("Applying rules for family #{id}")
+    rules.each do |rule|
+      rule.apply_later
     end
   end
 
-  def post_sync
+  def remove_syncing_notice!
+    broadcast_remove target: "syncing-notice"
+  end
+
+  def post_sync(sync)
+    auto_match_transfers!
     broadcast_refresh
   end
 
+  # If family has any syncs pending/syncing within the last hour, we show a persistent "syncing" notice.
+  # Ignore syncs older than 1 hour as they are considered "stale"
   def syncing?
     Sync.where(
       "(syncable_type = 'Family' AND syncable_id = ?) OR
        (syncable_type = 'Account' AND syncable_id IN (SELECT id FROM accounts WHERE family_id = ? AND plaid_account_id IS NULL)) OR
        (syncable_type = 'PlaidItem' AND syncable_id IN (SELECT id FROM plaid_items WHERE family_id = ?))",
       id, id, id
-    ).where(status: [ "pending", "syncing" ]).exists?
+    ).where(status: [ "pending", "syncing" ], created_at: 1.hour.ago..).exists?
   end
 
   def eu?
@@ -130,5 +166,9 @@ class Family < ApplicationRecord
       key,
       entries.maximum(:updated_at)
     ].compact.join("_")
+  end
+
+  def self_hoster?
+    Rails.application.config.app_mode.self_hosted?
   end
 end
