@@ -1,9 +1,21 @@
 class Series
-  attr_reader :start_date, :end_date, :interval, :trend, :values
+  # Behave like an Array whose elements are the `Value` structs stored in `values`
+  include Enumerable
+
+  # Forward any undefined method calls (e.g. `first`, `[]`, `map`) to `values`
+  delegate_missing_to :values
+
+  # Enumerable needs `#each`
+  def each(&block)
+    values.each(&block)
+  end
+
+  attr_reader :start_date, :end_date, :interval, :trend, :values, :favorable_direction
 
   Value = Struct.new(
     :date,
     :date_formatted,
+    :value,
     :trend,
     keyword_init: true
   )
@@ -21,14 +33,11 @@ class Series
         start_date: start_date,
         end_date: end_date,
         interval: interval,
-        trend: Trend.new(
-          current: ordered.last[:value],
-          previous: ordered.first[:value]
-        ),
         values: [ nil, *ordered ].each_cons(2).map do |prev_value, curr_value|
           Value.new(
             date: curr_value[:date],
             date_formatted: I18n.l(curr_value[:date], format: :long),
+            value: curr_value[:value],
             trend: Trend.new(
               current: curr_value[:value],
               previous: prev_value&.[](:value)
@@ -39,19 +48,29 @@ class Series
     end
   end
 
-  def initialize(start_date:, end_date:, interval:, trend:, values:)
+  def initialize(start_date:, end_date:, interval:, values:, favorable_direction: "up")
     @start_date = start_date
     @end_date = end_date
     @interval = interval
-    @trend = trend
     @values = values
+    @favorable_direction = favorable_direction
   end
 
-  def current
-    values.last.trend.current
+  def trend
+    @trend ||= Trend.new(
+      current: values.last&.value,
+      previous: values.first&.value,
+      favorable_direction: favorable_direction
+    )
   end
 
-  def any?
-    values.any?
+  def as_json
+    {
+      start_date: start_date,
+      end_date: end_date,
+      interval: interval,
+      trend: trend,
+      values: values.map { |v| { date: v.date, date_formatted: v.date_formatted, value: v.value, trend: v.trend } }
+    }
   end
 end

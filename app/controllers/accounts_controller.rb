@@ -23,15 +23,12 @@ class AccountsController < ApplicationController
   end
 
   def sparkline
+    # Pre-load the sparkline series to catch any errors before rendering
+    @sparkline_series = @account.sparkline_series
     render layout: false
-  end
-
-  def sync_all
-    unless family.syncing?
-      family.sync_later
-    end
-
-    redirect_back_or_to accounts_path
+  rescue => e
+    Rails.logger.error "Sparkline error for account #{@account.id}: #{e.message}"
+    render partial: "accounts/sparkline_error", layout: false
   end
 
   private

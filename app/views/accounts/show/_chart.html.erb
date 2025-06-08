@@ -1,17 +1,28 @@
-<%# locals: (account:, title: nil, tooltip: nil, chart_view: nil, **args) %>
+<%# locals: (account:, tooltip: nil, chart_view: nil, **args) %>
 
 <% period =  @period || Period.last_30_days %>
 <% default_value_title = account.asset? ? t(".balance") : t(".owed") %>
 
-<div id="<%= dom_id(account, :chart) %>" class="bg-container shadow-xs rounded-xl border border-alpha-black-25 rounded-lg space-y-2">
-  <div class="flex justify-between px-4 pt-4 mb-2">
-    <div class="space-y-2">
+<div id="<%= dom_id(account, :chart) %>" class="bg-container shadow-border-xs rounded-xl space-y-2">
+  <div class="flex justify-between flex-col-reverse lg:flex-row gap-2 px-4 pt-4 mb-2">
+    <div class="space-y-2 w-full">
       <div class="flex items-center gap-1">
-        <%= tag.p title || default_value_title, class: "text-sm font-medium text-secondary" %>
-        <%= tooltip %>
-      </div>
+        <%= tag.p account.investment? ? "Total value" : default_value_title, class: "text-sm font-medium text-secondary" %>
 
-      <%= tag.p format_money(account.balance_money), class: "text-primary text-3xl font-medium" %>
+        <% if !account.syncing? && account.investment? %>
+          <%= render "investments/value_tooltip", balance: account.balance_money, holdings: account.balance_money - account.cash_balance_money, cash: account.cash_balance_money %>
+        <% end %>
+      </div>
+      <div class="flex flex-row gap-2 items-baseline">
+        <% if account.syncing? %>
+          <div class="bg-loader rounded-md h-7 w-20"></div>
+        <% else %>
+          <%= tag.p format_money(account.balance_money), class: "text-primary text-3xl font-medium truncate" %>
+          <% if account.currency != Current.family.currency %>
+            <%= tag.p format_money(account.balance_money.exchange_to(Current.family.currency, fallback_rate: 1)), class: "text-sm font-medium text-secondary" %>
+          <% end %>
+        <% end %>
+      </div>
     </div>
 
     <%= form_with url: request.path, method: :get, data: { controller: "auto-submit-form" } do |form| %>
@@ -20,11 +31,15 @@
           <%= form.select :chart_view,
             [["Total value", "balance"], ["Holdings", "holdings_balance"], ["Cash", "cash_balance"]],
             { selected: chart_view },
-            class: "border border-secondary rounded-lg text-sm pr-7 cursor-pointer text-primary focus:outline-hidden focus:ring-0",
+            class: "bg-container border border-secondary rounded-lg text-sm pr-7 cursor-pointer text-primary focus:outline-hidden focus:ring-0",
             data: { "auto-submit-form-target": "auto" } %>
         <% end %>
 
-        <%= period_select form: form, selected: period %>
+        <%= form.select :period,
+                    Period.as_options,
+                    { selected: period.key },
+                    data: { "auto-submit-form-target": "auto" },
+                    class: "bg-container border border-secondary rounded-lg px-3 py-2 text-sm pr-7 cursor-pointer text-primary focus:outline-hidden focus:ring-0" %>
       </div>
     <% end %>
   </div>

@@ -1,7 +1,7 @@
-<img width="1440" alt="dashboard_mockup" src="https://github.com/maybe-finance/maybe/assets/35243/a7763d0e-a942-42db-bde7-eb8d28106917">
-<sup><i>(Note: The image above is a mockup of what we're working towards. We're rapidly approaching the functionality shown, but not all of the parts are ready just yet.)</i></sup>
 
-# Maybe: The OS for your personal finances
+<img width="1190" alt="maybe_hero" src="https://github.com/user-attachments/assets/13fc5ef4-ce0f-4073-a163-9dbc3eb4c8e5" />
+
+# Maybe: The personal finance app for everyone
 
 <b>Get
 involved: [Discord](https://link.maybe.co/discord) • [Website](https://maybefinance.com) • [Issues](https://github.com/maybe-finance/maybe/issues)</b>
@@ -37,6 +37,14 @@ to [understand context and general vision/direction](https://github.com/maybe-fi
 Once you've done that, please visit
 our [contributing guide](https://github.com/maybe-finance/maybe/blob/main/CONTRIBUTING.md)
 to get started!
+
+### Performance Issues
+
+With data-heavy apps, inevitably, there are performance issues. We've set up a public dashboard showing the problematic requests, along with the stacktraces to help debug them.
+
+Any contributions that help improve performance are very much welcome.
+
+https://oss.skylight.io/app/applications/XDpPIXEX52oi/recent/6h/endpoints
 
 ## Local Development Setup
 

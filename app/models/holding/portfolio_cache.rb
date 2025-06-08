@@ -21,11 +21,15 @@ class Holding::PortfolioCache
     end
   end
 
-  def get_price(security_id, date)
+  def get_price(security_id, date, source: nil)
     security = @security_cache[security_id]
     raise SecurityNotFound.new(security_id, account.id) unless security
 
-    price = security[:prices].select { |p| p.price.date == date }.min_by(&:priority)&.price
+    if source.present?
+      price = security[:prices].select { |p| p.price.date == date && p.source == source }.min_by(&:priority)&.price
+    else
+      price = security[:prices].select { |p| p.price.date == date }.min_by(&:priority)&.price
+    end
 
     return nil unless price
 
@@ -46,7 +50,7 @@ class Holding::PortfolioCache
   end
 
   private
-    PriceWithPriority = Data.define(:price, :priority)
+    PriceWithPriority = Data.define(:price, :priority, :source)
 
     def trades
       @trades ||= account.entries.includes(entryable: :security).trades.chronological.to_a
@@ -79,14 +83,12 @@ class Holding::PortfolioCache
       securities.each do |security|
         Rails.logger.info "Loading security: ID=#{security.id} Ticker=#{security.ticker}"
 
-        # Load prices from provider to DB
-        security.sync_provider_prices(start_date: account.start_date)
-
         # High priority prices from DB (synced from provider)
         db_prices = security.prices.where(date: account.start_date..Date.current).map do |price|
           PriceWithPriority.new(
             price: price,
-            priority: 1
+            priority: 1,
+            source: "db"
           )
         end
 
@@ -101,7 +103,8 @@ class Holding::PortfolioCache
                 currency: trade.entryable.currency,
                 date: trade.date
               ),
-              priority: 2
+              priority: 2,
+              source: "trade"
             )
           end
 
@@ -115,7 +118,8 @@ class Holding::PortfolioCache
                 currency: holding.currency,
                 date: holding.date
               ),
-              priority: 3
+              priority: 3,
+              source: "holding"
             )
           end
         else

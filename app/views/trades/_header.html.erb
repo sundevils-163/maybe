@@ -16,6 +16,12 @@
           <%= entry.currency %>
         </span>
       </h3>
+
+      <% if entry.linked? %>
+        <span title="Linked with Plaid">
+          <%= icon("refresh-ccw", size: "sm") %>
+        </span>
+      <% end %>
     </div>
 
     <span class="text-sm text-secondary">
@@ -26,7 +32,7 @@
   <% trade = entry.trade %>
 
   <div class="mb-2">
-    <%= disclosure t(".overview") do %>
+    <%= render DisclosureComponent.new(title: t(".overview"), open: true) do %>
       <div class="pb-4">
         <dl class="space-y-3 px-3 py-2">
           <div class="flex items-center justify-between text-sm">

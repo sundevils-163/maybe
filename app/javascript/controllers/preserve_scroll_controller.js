@@ -1,39 +1,44 @@
-/* 
+import { Controller } from "@hotwired/stimulus"
+
+/*
   https://dev.to/konnorrogers/maintain-scroll-position-in-turbo-without-data-turbo-permanent-2b1i
   modified to add support for horizontal scrolling
+
+  only requirement is that the element has an id
  */
-if (!window.scrollPositions) {
-  window.scrollPositions = {};
-}
+export default class extends Controller {
+  static scrollPositions = {}
 
-function preserveScroll() {
-  document.querySelectorAll("[data-preserve-scroll]").forEach((element) => {
-    scrollPositions[element.id] = {
-      top: element.scrollTop,
-      left: element.scrollLeft
-    };
-  });
-}
+  connect() {
+    this.preserveScrollBound = this.preserveScroll.bind(this)
+    this.restoreScrollBound = this.restoreScroll.bind(this)
 
-function restoreScroll(event) {
-  document.querySelectorAll("[data-preserve-scroll]").forEach((element) => {
-    if (scrollPositions[element.id]) {
-      element.scrollTop = scrollPositions[element.id].top;
-      element.scrollLeft = scrollPositions[element.id].left;
+    window.addEventListener("turbo:before-cache", this.preserveScrollBound)
+    window.addEventListener("turbo:before-render", this.restoreScrollBound)
+    window.addEventListener("turbo:render", this.restoreScrollBound)
+  }
+
+  disconnect() {
+    window.removeEventListener("turbo:before-cache", this.preserveScrollBound)
+    window.removeEventListener("turbo:before-render", this.restoreScrollBound)
+    window.removeEventListener("turbo:render", this.restoreScrollBound)
+  }
+
+  preserveScroll() {
+    if (!this.element.id) return
+
+    this.constructor.scrollPositions[this.element.id] = {
+      top: this.element.scrollTop,
+      left: this.element.scrollLeft
     }
-  });
+  }
 
-  if (!event.detail.newBody) return;
-  // event.detail.newBody is the body element to be swapped in.
-  // https://turbo.hotwired.dev/reference/events
-  event.detail.newBody.querySelectorAll("[data-preserve-scroll]").forEach((element) => {
-    if (scrollPositions[element.id]) {
-      element.scrollTop = scrollPositions[element.id].top;
-      element.scrollLeft = scrollPositions[element.id].left;
+  restoreScroll(event) {
+    if (!this.element.id) return
+
+    if (this.constructor.scrollPositions[this.element.id]) {
+      this.element.scrollTop = this.constructor.scrollPositions[this.element.id].top
+      this.element.scrollLeft = this.constructor.scrollPositions[this.element.id].left
     }
-  });
+  }
 }
-
-window.addEventListener("turbo:before-cache", preserveScroll);
-window.addEventListener("turbo:before-render", restoreScroll);
-window.addEventListener("turbo:render", restoreScroll);

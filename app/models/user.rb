@@ -21,7 +21,7 @@ class User < ApplicationRecord
 
   has_one_attached :profile_image do |attachable|
     attachable.variant :thumbnail, resize_to_fill: [ 300, 300 ], convert: :webp, saver: { quality: 80 }
-    attachable.variant :small, resize_to_fill: [ 72, 72 ], convert: :webp, saver: { quality: 80 }
+    attachable.variant :small, resize_to_fill: [ 72, 72 ], convert: :webp, saver: { quality: 80 }, preprocessed: true
   end
 
   validate :profile_image_size
@@ -150,6 +150,14 @@ class User < ApplicationRecord
   def provisioning_uri
     return nil unless otp_secret.present?
     totp.provisioning_uri(email)
+  end
+
+  def onboarded?
+    onboarded_at.present?
+  end
+
+  def needs_onboarding?
+    !onboarded?
   end
 
   private

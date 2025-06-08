@@ -1,5 +1,5 @@
 class Family < ApplicationRecord
-  include Syncable, AutoTransferMatchable
+  include PlaidConnectable, Syncable, AutoTransferMatchable, Subscribeable
 
   DATE_FORMATS = [
     [ "MM-DD-YYYY", "%m-%d-%Y" ],
@@ -15,7 +15,6 @@ class Family < ApplicationRecord
 
   has_many :users, dependent: :destroy
   has_many :accounts, dependent: :destroy
-  has_many :plaid_items, dependent: :destroy
   has_many :invitations, dependent: :destroy
 
   has_many :imports, dependent: :destroy
@@ -35,6 +34,25 @@ class Family < ApplicationRecord
 
   validates :locale, inclusion: { in: I18n.available_locales.map(&:to_s) }
   validates :date_format, inclusion: { in: DATE_FORMATS.map(&:last) }
+
+  # If any accounts or plaid items are syncing, the family is also syncing, even if a formal "Family Sync" is not running.
+  def syncing?
+    # Check for any in-progress syncs that belong directly to the family, to one of the
+    # family's accounts, or to one of the family's Plaid items. By moving the `visible`
+    # scope to the beginning we narrow down the candidate rows **before** performing the
+    # joins and by explicitly constraining the `syncable_type` for the direct Family
+    # match we allow Postgres to use the composite index on `(syncable_type, syncable_id)`.
+    Sync.visible
+        .joins("LEFT JOIN accounts ON accounts.id = syncs.syncable_id AND syncs.syncable_type = 'Account'")
+        .joins("LEFT JOIN plaid_items ON plaid_items.id = syncs.syncable_id AND syncs.syncable_type = 'PlaidItem'")
+        .where(
+          "(syncs.syncable_type = 'Family' AND syncs.syncable_id = :family_id) OR " \
+          "accounts.family_id = :family_id OR " \
+          "plaid_items.family_id = :family_id",
+          family_id: id
+        )
+        .exists?
+  end
 
   def assigned_merchants
     merchant_ids = transactions.where.not(merchant_id: nil).pluck(:merchant_id).uniq
@@ -65,70 +83,8 @@ class Family < ApplicationRecord
     @income_statement ||= IncomeStatement.new(self)
   end
 
-  def sync_data(sync, start_date: nil)
-    update!(last_synced_at: Time.current)
-
-    Rails.logger.info("Syncing accounts for family #{id}")
-    accounts.manual.each do |account|
-      account.sync_later(start_date: start_date, parent_sync: sync)
-    end
-
-    Rails.logger.info("Syncing plaid items for family #{id}")
-    plaid_items.each do |plaid_item|
-      plaid_item.sync_later(start_date: start_date, parent_sync: sync)
-    end
-
-    Rails.logger.info("Applying rules for family #{id}")
-    rules.each do |rule|
-      rule.apply_later
-    end
-  end
-
-  def remove_syncing_notice!
-    broadcast_remove target: "syncing-notice"
-  end
-
-  def post_sync(sync)
-    auto_match_transfers!
-    broadcast_refresh
-  end
-
-  # If family has any syncs pending/syncing within the last hour, we show a persistent "syncing" notice.
-  # Ignore syncs older than 1 hour as they are considered "stale"
-  def syncing?
-    Sync.where(
-      "(syncable_type = 'Family' AND syncable_id = ?) OR
-       (syncable_type = 'Account' AND syncable_id IN (SELECT id FROM accounts WHERE family_id = ? AND plaid_account_id IS NULL)) OR
-       (syncable_type = 'PlaidItem' AND syncable_id IN (SELECT id FROM plaid_items WHERE family_id = ?))",
-      id, id, id
-    ).where(status: [ "pending", "syncing" ], created_at: 1.hour.ago..).exists?
-  end
-
   def eu?
     country != "US" && country != "CA"
-  end
-
-  def get_link_token(webhooks_url:, redirect_url:, accountable_type: nil, region: :us, access_token: nil)
-    provider = if region.to_sym == :eu
-      Provider::Registry.get_provider(:plaid_eu)
-    else
-      Provider::Registry.get_provider(:plaid_us)
-    end
-
-    # early return when no provider
-    return nil unless provider
-
-    provider.get_link_token(
-      user_id: id,
-      webhooks_url: webhooks_url,
-      redirect_url: redirect_url,
-      accountable_type: accountable_type,
-      access_token: access_token
-    ).link_token
-  end
-
-  def subscribed?
-    stripe_subscription_status == "active"
   end
 
   def requires_data_provider?
@@ -146,16 +102,12 @@ class Family < ApplicationRecord
     false
   end
 
-  def primary_user
-    users.order(:created_at).first
+  def missing_data_provider?
+    requires_data_provider? && Provider::Registry.get_provider(:synth).nil?
   end
 
   def oldest_entry_date
     entries.order(:date).first&.date || Date.current
-  end
-
-  def active_accounts_count
-    accounts.active.count
   end
 
   # Cache key that is invalidated when any of the family's entries are updated (which affect rollups and other calculations)

@@ -13,7 +13,7 @@ export default class extends Controller {
 
   addSubCondition() {
     const html = this.subConditionTemplateTarget.innerHTML.replaceAll(
-      "IDX_PLACEHOLDER",
+      "IDX_CHILD_PLACEHOLDER",
       this.#uniqueKey(),
     );
 
@@ -21,11 +21,22 @@ export default class extends Controller {
   }
 
   remove(e) {
+    // Find the parent rules controller before removing the condition
+    const rulesEl = this.element.closest('[data-controller~="rules"]');
+
     if (e.params.destroy) {
       this.destroyFieldTarget.value = true;
       this.element.classList.add("hidden");
     } else {
       this.element.remove();
+    }
+
+    // Update the prefixes of all conditions from the parent rules controller
+    if (rulesEl) {
+      const rulesController = this.application.getControllerForElementAndIdentifier(rulesEl, "rules");
+      if (rulesController && typeof rulesController.updateConditionPrefixes === "function") {
+        rulesController.updateConditionPrefixes();
+      }
     }
   }
 
@@ -99,6 +110,6 @@ export default class extends Controller {
   }
 
   #uniqueKey() {
-    return Math.random().toString(36).substring(2, 15);
+    return Date.now();
   }
 }

@@ -1,4 +1,4 @@
-<div class="flex items-start w-full">
+<div class="flex items-start w-full gap-3 p-2">
   <%= render "chats/ai_avatar" %>
 
   <div class="max-w-[85%] text-sm space-y-4 text-primary">
@@ -30,8 +30,8 @@
         <% questions.each do |question| %>
           <button data-action="chat#submitSampleQuestion"
                   data-chat-question-param="<%= question[:text] %>"
-                  class="w-full flex items-center gap-2 border border-tertiary rounded-full py-1.5 px-2.5 hover:bg-gray-100">
-            <%= icon(question[:icon], color: "gray") %> <%= question[:text] %>
+                  class="w-fit flex items-center gap-2 border border-tertiary rounded-full py-1.5 px-2.5 hover:bg-gray-100">
+            <%= icon(question[:icon]) %> <%= question[:text] %>
           </button>
         <% end %>
       </div>

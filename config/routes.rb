@@ -1,4 +1,5 @@
 require "sidekiq/web"
+require "sidekiq/cron/web"
 
 Rails.application.routes.draw do
   # MFA routes
@@ -7,6 +8,8 @@ Rails.application.routes.draw do
     post :verify, to: "mfa#verify_code"
     delete :disable
   end
+
+  mount Lookbook::Engine, at: "/design-system"
 
   # Uses basic auth - see config/initializers/sidekiq.rb
   mount Sidekiq::Web => "/sidekiq"
@@ -22,7 +25,8 @@ Rails.application.routes.draw do
 
   get "changelog", to: "pages#changelog"
   get "feedback", to: "pages#feedback"
-  get "early-access", to: "pages#early_access"
+
+  resource :current_session, only: %i[update]
 
   resource :registration, only: %i[new create]
   resources :sessions, only: %i[new create destroy]
@@ -37,8 +41,9 @@ Rails.application.routes.draw do
 
   resource :onboarding, only: :show do
     collection do
-      get :profile
       get :preferences
+      get :goals
+      get :trial
     end
   end
 
@@ -52,12 +57,16 @@ Rails.application.routes.draw do
     resource :security, only: :show
   end
 
-  resource :subscription, only: %i[new show] do
-    get :success, on: :collection
+  resource :subscription, only: %i[new show create] do
+    collection do
+      get :upgrade
+      get :success
+    end
   end
 
   resources :tags, except: :show do
     resources :deletions, only: %i[new create], module: :tag
+    delete :destroy_all, on: :collection
   end
 
   namespace :category do
@@ -98,10 +107,6 @@ Rails.application.routes.draw do
   end
 
   resources :accounts, only: %i[index new], shallow: true do
-    collection do
-      post :sync_all
-    end
-
     member do
       post :sync
       get :chart
@@ -188,7 +193,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :plaid_items, only: %i[create destroy] do
+  resources :plaid_items, only: %i[new edit create destroy] do
     member do
       post :sync
     end
@@ -209,6 +214,9 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
   get "imports/:import_id/upload/sample_csv", to: "import/uploads#sample_csv", as: :import_upload_sample_csv
+
+  get "privacy", to: redirect("https://maybefinance.com/privacy")
+  get "terms", to: redirect("https://maybefinance.com/tos")
 
   # Defines the root path route ("/")
   root "pages#dashboard"

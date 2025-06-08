@@ -21,7 +21,7 @@ class Rule::ActionTest < ActiveSupport::TestCase
 
   test "set_transaction_category" do
     # Does not modify transactions that are locked (user edited them)
-    @txn1.lock!(:category_id)
+    @txn1.lock_attr!(:category_id)
 
     action = Rule::Action.new(
       rule: @transaction_rule,
@@ -42,7 +42,7 @@ class Rule::ActionTest < ActiveSupport::TestCase
     tag = @family.tags.create!(name: "Rule test tag")
 
     # Does not modify transactions that are locked (user edited them)
-    @txn1.lock!(:tag_ids)
+    @txn1.lock_attr!(:tag_ids)
 
     action = Rule::Action.new(
       rule: @transaction_rule,
@@ -56,6 +56,48 @@ class Rule::ActionTest < ActiveSupport::TestCase
 
     [ @txn2, @txn3 ].each do |transaction|
       assert_equal [ tag ], transaction.reload.tags
+    end
+  end
+
+  test "set_transaction_merchant" do
+    merchant = @family.merchants.create!(name: "Rule test merchant")
+
+    # Does not modify transactions that are locked (user edited them)
+    @txn1.lock_attr!(:merchant_id)
+
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_merchant",
+      value: merchant.id
+    )
+
+    action.apply(@rule_scope)
+
+    assert_not_equal merchant.id, @txn1.reload.merchant_id
+
+    [ @txn2, @txn3 ].each do |transaction|
+      assert_equal merchant.id, transaction.reload.merchant_id
+    end
+  end
+
+  test "set_transaction_name" do
+    new_name = "Renamed Transaction"
+
+    # Does not modify transactions that are locked (user edited them)
+    @txn1.lock_attr!(:name)
+
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_name",
+      value: new_name
+    )
+
+    action.apply(@rule_scope)
+
+    assert_not_equal new_name, @txn1.reload.entry.name
+
+    [ @txn2, @txn3 ].each do |transaction|
+      assert_equal new_name, transaction.reload.entry.name
     end
   end
 end
