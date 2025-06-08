@@ -50,6 +50,11 @@ spec:
            secretKeyRef:
             name: maybe-secrets
             key: secret-key-base
+        - name: OPENAI_ACCESS_TOKEN
+          valueFrom:
+           secretKeyRef:
+            name: maybe-secrets
+            key: openai-api-key
         ports:
         - containerPort: 3000
         readinessProbe:
