@@ -55,6 +55,11 @@ spec:
            secretKeyRef:
             name: maybe-secrets
             key: openai-api-key
+        - name: SYNTH_API_KEY
+          valueFrom:
+           secretKeyRef:
+            name: maybe-secrets
+            key: synth-api-key
         ports:
         - containerPort: 3000
         readinessProbe:
