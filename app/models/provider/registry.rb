@@ -40,6 +40,14 @@ class Provider::Registry
         Provider::Synth.new(api_key)
       end
 
+      def fmp
+        api_key = ENV.fetch("FMP_API_KEY", Setting.fmp_api_key)
+
+        return nil unless api_key.present?
+
+        Provider::Fmp.new(api_key)
+      end
+
       def plaid_us
         config = Rails.application.config.plaid
 
@@ -94,11 +102,11 @@ class Provider::Registry
       when :exchange_rates
         %i[synth]
       when :securities
-        %i[synth]
+        %i[synth fmp]
       when :llm
         %i[openai]
       else
-        %i[synth plaid_us plaid_eu github openai]
+        %i[synth fmp plaid_us plaid_eu github openai]
       end
     end
 end
