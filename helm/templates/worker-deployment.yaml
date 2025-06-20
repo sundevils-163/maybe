@@ -61,3 +61,8 @@ spec:
            secretKeyRef:
             name: maybe-secrets
             key: synth-api-key
+        - name: FMP_API_KEY
+          valueFrom:
+           secretKeyRef:
+            name: maybe-secrets
+            key: fmp-api-key

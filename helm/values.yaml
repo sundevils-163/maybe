@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: junzhutx/maybe-homelab
-  tag: "0.2.6" # Or pin to "v0.2.0-rc2"
+  tag: "0.2.6-mf" # Or pin to "v0.2.0-rc2"
   pullPolicy: IfNotPresent
 
 service:
@@ -11,7 +11,7 @@ service:
 
 ingress:
   enabled: true
-  hostname: maybe.lan
+  hostname: maybe-beta.lan
   ingressClassName: nginx # Adjust if using a different ingress controller
 
 maybe:

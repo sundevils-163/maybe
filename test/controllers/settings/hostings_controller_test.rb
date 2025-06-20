@@ -46,6 +46,14 @@ class Settings::HostingsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "can update fmp api key when self hosting is enabled" do
+    with_self_hosting do
+      patch settings_hosting_url, params: { setting: { fmp_api_key: "fmp_key_123" } }
+
+      assert_equal "fmp_key_123", Setting.fmp_api_key
+    end
+  end
+
   test "can clear data cache when self hosting is enabled" do
     account = accounts(:investment)
     holding = account.holdings.first

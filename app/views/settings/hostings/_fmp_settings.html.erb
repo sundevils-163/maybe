@@ -1,0 +1,38 @@
+<div class="space-y-4">
+  <div>
+    <h2 class="font-medium mb-1"><%= t(".title") %></h2>
+    <% if ENV["FMP_API_KEY"].present? %>
+      <p class="text-sm text-secondary">You have successfully configured your FMP API key through the FMP_API_KEY environment variable.</p>
+    <% else %>
+      <p class="text-secondary text-sm mb-4"><%= t(".description") %></p>
+    <% end %>
+  </div>
+
+  <%= styled_form_with model: Setting.new,
+                       url: settings_hosting_path,
+                       method: :patch,
+                       data: {
+                         controller: "auto-submit-form",
+                         "auto-submit-form-trigger-event-value": "blur"
+                       } do |form| %>
+    <%= form.text_field :fmp_api_key,
+                        label: t(".label"),
+                        type: "password",
+                        placeholder: t(".placeholder"),
+                        value: ENV.fetch("FMP_API_KEY", Setting.fmp_api_key),
+                        disabled: ENV["FMP_API_KEY"].present?,
+                        data: { "auto-submit-form-target": "auto" } %>
+  <% end %>
+
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+    <div class="flex items-start gap-3">
+      <div class="flex-shrink-0">
+        <%= icon "info", class: "w-5 h-5 text-blue-600 mt-0.5" %>
+      </div>
+      <div class="text-sm text-blue-800">
+        <p class="font-medium mb-1"><%= t(".info_title") %></p>
+        <p><%= t(".info_description") %></p>
+      </div>
+    </div>
+  </div>
+</div>
