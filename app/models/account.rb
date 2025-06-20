@@ -2,6 +2,7 @@ class Account < ApplicationRecord
   include Syncable, Monetizable, Chartable, Linkable, Enrichable
 
   validates :name, :balance, :currency, presence: true
+  validate :balance_cannot_be_nil
 
   belongs_to :family
   belongs_to :import, optional: true
@@ -157,4 +158,21 @@ class Account < ApplicationRecord
   def long_subtype_label
     accountable_class.long_subtype_label_for(subtype) || accountable_class.display_name
   end
+
+  # Safe method to get balance, ensuring it's never nil
+  def safe_balance
+    balance || 0
+  end
+
+  # Safe method to get cash balance, ensuring it's never nil
+  def safe_cash_balance
+    cash_balance || 0
+  end
+
+  private
+    def balance_cannot_be_nil
+      if balance.nil?
+        errors.add(:balance, "cannot be nil")
+      end
+    end
 end

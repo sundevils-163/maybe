@@ -32,6 +32,10 @@ class Balance::Materializer
       calculated_holdings_value = @holdings.select { |h| h.date == Date.current }.sum(&:amount) || 0
       calculated_cash_balance = calculated_balance - calculated_holdings_value
 
+      # Ensure we don't set nil values
+      calculated_balance = 0 if calculated_balance.nil?
+      calculated_cash_balance = 0 if calculated_cash_balance.nil?
+
       Rails.logger.info("Balance update: cash=#{calculated_cash_balance}, total=#{calculated_balance}")
 
       account.update!(

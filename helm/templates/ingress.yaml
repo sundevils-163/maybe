@@ -11,7 +11,7 @@ spec:
   tls:
   - hosts:
     - {{ .Values.ingress.hostname }}
-    secretName: maybe-tls-secret
+    secretName: {{ .Values.ingress.secretname }}
   ingressClassName: {{ .Values.ingress.ingressClassName }}
   rules:
   - host: {{ .Values.ingress.hostname }}

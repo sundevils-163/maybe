@@ -21,7 +21,7 @@ class Balance::ForwardCalculator
       account.start_date.upto(Date.current).each do |date|
         entries = sync_cache.get_entries(date)
         holdings = sync_cache.get_holdings(date)
-        holdings_value = holdings.sum(&:amount)
+        holdings_value = holdings.sum(&:amount) || 0
         valuation = sync_cache.get_valuation(date)
 
         next_cash_balance = if valuation
@@ -29,6 +29,9 @@ class Balance::ForwardCalculator
         else
           calculate_next_balance(current_cash_balance, entries, direction: :forward)
         end
+
+        # Ensure we don't have nil values
+        next_cash_balance = 0 if next_cash_balance.nil?
 
         @balances << build_balance(date, next_cash_balance, holdings_value)
 
@@ -43,6 +46,10 @@ class Balance::ForwardCalculator
     end
 
     def build_balance(date, cash_balance, holdings_value)
+      # Ensure we don't have nil values
+      cash_balance = 0 if cash_balance.nil?
+      holdings_value = 0 if holdings_value.nil?
+
       Balance.new(
         account_id: account.id,
         date: date,

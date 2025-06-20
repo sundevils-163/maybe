@@ -48,22 +48,26 @@ module Security::Provided
       []
     end
 
-    private
-
     def try_provider_operation(operation_name, *args, **kwargs, &block)
       last_error = nil
 
+      Rails.logger.info("Trying provider operation: #{operation_name} with providers: #{providers.map(&:class).map(&:name)}")
+
       providers.each do |provider|
         next unless provider.present?
+
+        Rails.logger.info("Attempting #{operation_name} with provider: #{provider.class.name}")
 
         begin
           response = provider.send(operation_name, *args, **kwargs)
           
           if response.success?
+            Rails.logger.info("Provider #{provider.class.name} succeeded for #{operation_name}")
             return yield(response) if block_given?
             return response
           else
             last_error = response.error
+            Rails.logger.warn("Provider #{provider.class.name} failed for #{operation_name}: #{response.error}")
           end
         rescue => e
           last_error = e
@@ -72,7 +76,7 @@ module Security::Provided
       end
 
       # If we get here, all providers failed
-      Rails.logger.warn("All providers failed for #{operation_name}. Last error: #{last_error}")
+      Rails.logger.error("All providers failed for #{operation_name}. Last error: #{last_error}")
       nil
     end
   end
