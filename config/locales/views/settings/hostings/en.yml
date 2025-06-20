@@ -28,6 +28,13 @@ en:
         placeholder: Enter your API key here
         plan: "%{plan} plan"
         title: Synth Settings
+      fmp_settings:
+        description: Input the API key provided by Financial Modeling Prep
+        label: API Key
+        placeholder: Enter your FMP API key here
+        title: FMP Settings
+        info_title: FMP Provider
+        info_description: FMP is used as a fallback when Synth API cannot provide stock prices, particularly useful for mutual funds and ETFs.
       update:
         failure: Invalid setting value
         success: Settings updated
