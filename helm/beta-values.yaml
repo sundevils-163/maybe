@@ -1,5 +1,5 @@
 image:
-  tag: "0.2.6-mf1" # Or pin to "v0.2.0-rc2"
+  tag: "0.2.6-mf6" # Or pin to "v0.2.0-rc2"
 
 ingress:
   hostname: maybe-beta.lan

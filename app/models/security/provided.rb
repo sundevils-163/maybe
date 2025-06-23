@@ -31,6 +31,7 @@ module Security::Provided
         
         response = provider.search_securities(symbol, **params)
 
+        # For search operations, treat empty successful responses as failures to trigger fallback
         if response.success? && response.data.any?
           return response.data.map do |provider_security|
             # Need to map to domain model so Combobox can display via to_combobox_option
@@ -42,6 +43,9 @@ module Security::Provided
               country_code: provider_security.country_code
             )
           end
+        elsif response.success? && response.data.empty?
+          # Log that this provider returned no results, so we'll try the next one
+          Rails.logger.info("Provider #{provider.class.name} returned no results for symbol: #{symbol}")
         end
       end
 
@@ -62,6 +66,12 @@ module Security::Provided
           response = provider.send(operation_name, *args, **kwargs)
           
           if response.success?
+            # For search operations, treat empty successful responses as failures
+            if operation_name == :search_securities && response.data.empty?
+              Rails.logger.info("Provider #{provider.class.name} returned no results for #{operation_name}")
+              next
+            end
+            
             Rails.logger.info("Provider #{provider.class.name} succeeded for #{operation_name}")
             return yield(response) if block_given?
             return response

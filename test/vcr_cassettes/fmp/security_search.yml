@@ -1,0 +1,55 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://financialmodelingprep.com/api/v3/search?apikey&limit=25&query=AAPL
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - Maybe Finance App
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+  response:
+    status:
+      code: 401
+      message: Unauthorized
+    headers:
+      Date:
+      - Sat, 21 Jun 2025 00:05:49 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '184'
+      Connection:
+      - keep-alive
+      Server:
+      - nginx/1.18.0 (Ubuntu)
+      X-Powered-By:
+      - Express
+      Access-Control-Allow-Origin:
+      - "*"
+      Access-Control-Allow-Methods:
+      - GET, POST, OPTIONS
+      Access-Control-Allow-Headers:
+      - X-Requested-With, content-type, auth-token, Authorization, stripe-signature,
+        APPS, publicauthkey, privateauthkey
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Max-Age:
+      - '3600'
+      Etag:
+      - W/"b8-LBc5hyi7iBUA08ltRiX0I40rBX0"
+      X-Frame-Options:
+      - SAMEORIGIN
+    body:
+      encoding: UTF-8
+      string: |-
+        {
+          "Error Message": "Invalid API KEY. Feel free to create a Free API Key or visit https://site.financialmodelingprep.com/faqs?search=why-is-my-api-key-invalid for more information."
+        }
+  recorded_at: Sat, 21 Jun 2025 00:05:49 GMT
+recorded_with: VCR 6.3.1

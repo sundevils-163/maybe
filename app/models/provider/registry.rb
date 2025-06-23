@@ -70,6 +70,10 @@ class Provider::Registry
 
       def fmp
         api_key = ENV.fetch("FMP_API_KEY", Setting.fmp_api_key)
+        
+        Rails.logger.info("FMP registry: ENV['FMP_API_KEY'] = #{ENV['FMP_API_KEY'].present? ? 'present' : 'missing'}")
+        Rails.logger.info("FMP registry: Setting.fmp_api_key = #{Setting.fmp_api_key.present? ? 'present' : 'missing'}")
+        Rails.logger.info("FMP registry: final api_key = #{api_key.present? ? 'present' : 'missing'}")
 
         return nil unless api_key.present?
 

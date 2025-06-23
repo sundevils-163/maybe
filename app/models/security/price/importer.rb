@@ -80,6 +80,7 @@ class Security::Price::Importer
         )
 
         if response.success?
+          # fetch_security_prices returns an array directly
           response.data.index_by(&:date)
         else
           Rails.logger.warn("#{security_provider.class.name} could not fetch prices for #{security.ticker} between #{provider_fetch_start_date} and #{end_date}. Provider error: #{response.error.message}")

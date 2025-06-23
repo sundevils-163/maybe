@@ -117,6 +117,7 @@ class ExchangeRate::Importer
         )
 
         if provider_response.success?
+          # fetch_exchange_rates returns an array directly
           provider_response.data.index_by(&:date)
         else
           message = "#{exchange_rate_provider.class.name} could not fetch exchange rate pair from: #{from} to: #{to} between: #{effective_start_date} and: #{Date.current}.  Provider error: #{provider_response.error.message}"
