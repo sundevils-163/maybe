@@ -24,3 +24,12 @@ spec:
           value: {{ .Values.postgres.database }}
         ports:
         - containerPort: 5432
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      nodeSelector:
+        kubernetes.io/hostname: k8sworker1

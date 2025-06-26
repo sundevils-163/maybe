@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: junzhutx/maybe-homelab
-  tag: "0.2.6" # Or pin to "v0.2.0-rc2"
+  tag: "0.2.7" # Or pin to "v0.2.0-rc2"
   pullPolicy: IfNotPresent
 
 service:
